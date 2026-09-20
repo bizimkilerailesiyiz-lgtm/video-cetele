@@ -77,7 +77,7 @@ const timeFmt=ts=>new Intl.DateTimeFormat("tr-TR",{hour:"2-digit",minute:"2-digi
 const persist=()=>localStorage.setItem(KEY,JSON.stringify(db));
 
 function pageTotal(p,todayOnly=false){
- let n=0;accounts.forEach(a=>db[p][a].forEach(r=>{if(!todayOnly||isToday(r.ts))n++}));return n;
+ let n=0;accounts.forEach(a=>db[p][a].forEach(r=>{if(!r.plannedTs&&(!todayOnly||isToday(r.ts)))n++}));return n;
 }
 function allTotal(){return pages.reduce((s,p)=>s+pageTotal(p),0)}
 function todayTotal(){return pages.reduce((s,p)=>s+pageTotal(p,true),0)} function plannedTotal(p){let n=0;accounts.forEach(a=>db[p][a].forEach(r=>{if(r.plannedTs)n++}));return n} function plannedOverall(){return pages.reduce((s,p)=>s+plannedTotal(p),0)}
