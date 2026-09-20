@@ -45,7 +45,7 @@ button,input{font:inherit}.app{max-width:760px;margin:auto;padding:18px 15px 90p
   <div class="section-title">Hesaplar</div>
   <div class="account-grid" id="accounts"></div>
   <div class="section-title">Bugünkü kayıtlar</div>
-  <div class="records" id="records"></div>
+  <div class="records" id="records"></div><div class="section-title">Planlanan videolar</div><div class="records" id="plannedRecords"></div>
 </section>
 
 </div>
@@ -109,7 +109,7 @@ function renderDetail(){
   <button class="add" onclick="openModal('${a}')">+ Video Paylaştım</button>
  </div>`).join("");
  let rows=[];
- accounts.forEach(a=>db[currentPage][a].forEach((r,i)=>{if(isToday(r.ts))rows.push({a,i,...r})}));
+ accounts.forEach(a=>db[currentPage][a].forEach((r,i)=>{if(!r.plannedTs&&isToday(r.ts))rows.push({a,i,...r})}));
  rows.sort((x,y)=>y.ts-x.ts);
  $("records").innerHTML=rows.length?rows.map(r=>`
  <div class="record">
@@ -120,6 +120,16 @@ function renderDetail(){
   </div>
   <button class="delete" onclick="removeRecord('${r.a}',${r.i})">Sil</button>
  </div>`).join(""):'<div class="empty">Bugün henüz kayıt yok.</div>';
+ let planned=[];accounts.forEach(a=>db[currentPage][a].forEach((r,i)=>{if(r.plannedTs)planned.push({a,i,...r})}));planned.sort((x,y)=>x.plannedTs-y.plannedTs);
+ $("plannedRecords").innerHTML=planned.length?planned.map(r=>`
+ <div class="record">
+  <div class="record-main">
+   <div class="record-title">📅 ${r.a}</div>
+   <div class="record-time">Planlanan: ${dateFmt(r.plannedTs)} · ${timeFmt(r.plannedTs)}</div>
+   ${r.url?`<a class="url" href="${escapeAttr(r.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(r.url)}</a>`:""}
+  </div>
+  <button class="delete" onclick="removeRecord('${r.a}',${r.i})">Sil</button>
+ </div>`).join(""):'<div class="empty">Planlanmış video yok.</div>';
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function escapeAttr(s){return escapeHtml(s)}
