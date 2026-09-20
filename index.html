@@ -14,7 +14,7 @@
 button,input{font:inherit}.app{max-width:760px;margin:auto;padding:18px 15px 90px}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.header h1{margin:0;font-size:29px}.header p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .iconbtn{width:42px;height:42px;border:0;border-radius:14px;background:#fff;font-size:20px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}.stat{background:#111;color:#fff;border-radius:19px;padding:17px}.stat b{font-size:30px;display:block}.stat span{font-size:11px;color:#aaa}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.stat{background:#111;color:#fff;border-radius:19px;padding:17px}.stat b{font-size:30px;display:block}.stat span{font-size:11px;color:#aaa}
 .section-title{font-size:18px;font-weight:800;margin:20px 2px 10px}
 .pages{display:grid;gap:11px}.page{background:#fff;border:0;border-radius:20px;padding:17px;text-align:left;box-shadow:0 2px 12px #0000000b;display:flex;align-items:center;justify-content:space-between}.page:active{transform:scale(.99)}
 .page-name{font-size:18px;font-weight:800}.page-meta{font-size:12px;color:#777;margin-top:4px}.arrow{font-size:25px;color:#999}
@@ -33,7 +33,7 @@ button,input{font:inherit}.app{max-width:760px;margin:auto;padding:18px 15px 90p
 
 <section id="home" class="pageview active">
   <div class="header"><div><h1>Video Çetele</h1><p id="todayText"></p></div><button class="iconbtn" onclick="resetToday()">↻</button></div>
-  <div class="stats"><div class="stat"><b id="homeToday">0</b><span>BUGÜN TOPLAM</span></div><div class="stat"><b id="homeAll">0</b><span>TÜM KAYITLAR</span></div></div>
+  <div class="stats"><div class="stat"><b id="homeToday">0</b><span>BUGÜN TOPLAM</span></div><div class="stat"><b id="homePlanned">0</b><span>PLANLANAN</span></div><div class="stat"><b id="homeAll">0</b><span>TÜM KAYITLAR</span></div></div>
   <div class="section-title">Sayfalar</div>
   <div class="pages" id="pageCards"></div>
 </section>
@@ -41,7 +41,7 @@ button,input{font:inherit}.app{max-width:760px;margin:auto;padding:18px 15px 90p
 <section id="detail" class="pageview">
   <button class="back" onclick="goHome()">‹ Sayfalar</button>
   <div class="header"><div><h1 id="detailName"></h1><p id="detailDate"></p></div></div>
-  <div class="summary"><div class="summary-row"><span>Bugün</span><b id="detailToday">0</b></div></div>
+  <div class="summary"><div class="summary-row"><span>Bugün</span><b id="detailToday">0</b></div><div class="summary-row" style="margin-top:8px"><span>Planlanan</span><b id="detailPlanned">0</b></div></div>
   <div class="section-title">Hesaplar</div>
   <div class="account-grid" id="accounts"></div>
   <div class="section-title">Bugünkü kayıtlar</div>
@@ -55,7 +55,7 @@ button,input{font:inherit}.app{max-width:760px;margin:auto;padding:18px 15px 90p
 <div class="modal" id="modal">
   <div class="sheet">
     <h2 id="modalTitle"></h2>
-    <p>Kaydettiğinde tarih ve saat otomatik alınır.</p>
+    <p id="modalInfo">Şimdi paylaştıysan tarih ve saat otomatik alınır.</p><div style="display:flex;gap:8px;margin-bottom:10px"><button class="primary" style="margin:0" onclick="setMode(false)">Şimdi Paylaştım</button><button class="cancel" style="margin:0" onclick="setMode(true)">Planladım</button></div><input id="planInput" type="datetime-local" style="display:none;margin-bottom:8px">
     <input id="linkInput" type="url" placeholder="Video linki (isteğe bağlı)">
     <button class="primary" onclick="saveRecord()">Videoyu Kaydet</button>
     <button class="cancel" onclick="closeModal()">Vazgeç</button>
@@ -68,7 +68,7 @@ const accounts=["Prive","Dinamo","Evetabi","Ngs","Redwin","Kulis"];
 const KEY="video_cetele_3sayfa_v1";
 let db=JSON.parse(localStorage.getItem(KEY)||"{}");
 pages.forEach(p=>{if(!db[p]||typeof db[p]!=="object")db[p]={};accounts.forEach(a=>{if(!Array.isArray(db[p][a]))db[p][a]=[]})});
-let currentPage="",currentAccount="";
+let currentPage="",currentAccount="",planning=false;
 
 const $=id=>document.getElementById(id);
 const isToday=ts=>new Date(ts).toDateString()===new Date().toDateString();
@@ -80,14 +80,14 @@ function pageTotal(p,todayOnly=false){
  let n=0;accounts.forEach(a=>db[p][a].forEach(r=>{if(!todayOnly||isToday(r.ts))n++}));return n;
 }
 function allTotal(){return pages.reduce((s,p)=>s+pageTotal(p),0)}
-function todayTotal(){return pages.reduce((s,p)=>s+pageTotal(p,true),0)}
+function todayTotal(){return pages.reduce((s,p)=>s+pageTotal(p,true),0)} function plannedTotal(p){let n=0;accounts.forEach(a=>db[p][a].forEach(r=>{if(r.plannedTs)n++}));return n} function plannedOverall(){return pages.reduce((s,p)=>s+plannedTotal(p),0)}
 
 function renderHome(){
  $("todayText").textContent=new Intl.DateTimeFormat("tr-TR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
- $("homeToday").textContent=todayTotal();$("homeAll").textContent=allTotal();
+ $("homeToday").textContent=todayTotal();$("homePlanned").textContent=plannedOverall();$("homeAll").textContent=allTotal();
  $("pageCards").innerHTML=pages.map(p=>`
  <button class="page" onclick="openPage('${p}')">
-   <div><div class="page-name">${p}</div><div class="page-meta">${pageTotal(p,true)} video bugün · ${pageTotal(p)} toplam</div></div>
+   <div><div class="page-name">${p}</div><div class="page-meta">${pageTotal(p,true)} video bugün · ${plannedTotal(p)} planlı · ${pageTotal(p)} toplam</div></div>
    <div class="arrow">›</div>
  </button>`).join("");
 }
@@ -102,7 +102,7 @@ function goHome(){
  currentPage="";$("detail").classList.remove("active");$("home").classList.add("active");renderHome();window.scrollTo(0,0);
 }
 function renderDetail(){
- $("detailToday").textContent=pageTotal(currentPage,true);
+ $("detailToday").textContent=pageTotal(currentPage,true);$("detailPlanned").textContent=plannedTotal(currentPage);
  $("accounts").innerHTML=accounts.map(a=>`
  <div class="account">
   <h3>${a}</h3><div class="meta">${db[currentPage][a].filter(r=>isToday(r.ts)).length} video bugün</div>
@@ -123,15 +123,10 @@ function renderDetail(){
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function escapeAttr(s){return escapeHtml(s)}
-function openModal(a){
- currentAccount=a;$("modalTitle").textContent=currentPage+" · "+a;
- $("linkInput").value="";$("modal").style.display="flex";
+function openModal(a){ currentAccount=a;planning=false;$("modalTitle").textContent=currentPage+" · "+a; $("linkInput").value="";$("planInput").value="";$("modal").style.display="flex";setMode(false);
  setTimeout(()=>$("linkInput").focus(),80);
 }
-function closeModal(){$("modal").style.display="none"}
-function saveRecord(){
- const url=$("linkInput").value.trim();
- db[currentPage][currentAccount].push({ts:Date.now(),url});
+function closeModal(){$("modal").style.display="none"} function setMode(plan){planning=plan;$("planInput").style.display=plan?"block":"none";$("modalInfo").textContent=plan?"Video daha sonra paylaşılacaksa tarih ve saati seç.":"Şimdi paylaştıysan tarih ve saat otomatik alınır."} function saveRecord(){ const url=$("linkInput").value.trim(); if(planning){const v=$("planInput").value;if(!v){alert("Planlanan tarih ve saati seç.");return}db[currentPage][currentAccount].push({ts:Date.now(),plannedTs:new Date(v).getTime(),url});}else db[currentPage][currentAccount].push({ts:Date.now(),url});
  persist();closeModal();renderDetail();renderHome();
 }
 function removeRecord(a,i){
